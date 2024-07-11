@@ -1,3 +1,10 @@
+# project specific
+*.mp4
+*.mp3
+*.wav
+videoscam_pipeline/audio_files/
+videoscam_pipeline/video_files/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

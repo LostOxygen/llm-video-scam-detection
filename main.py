@@ -6,11 +6,27 @@ import os
 import getpass
 import psutil
 import argparse
-from pathlib import Path
 import datetime
 import torch
+from typing import Final
+
+import yt_dlp
 
 from videoscam_pipeline.colors import TColors
+from videoscam_pipeline.pipeline import ScamPipeline
+
+VIDEO_PATH: Final[str] = "videoscam_pipeline/video_files/"
+AUDIO_PATH: Final[str] = "videoscam_pipeline/audio_files/"
+TEST_VIDEO_URL: Final[str] = "https://www.youtube.com/watch?v=2paOYObEhoA"
+
+YDL_OPTS: Final[dict] = {
+    "format": "mp4",
+    # pylint: disable=line-too-long
+    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36",
+    "fragment_requests": 100,  # try increasing this
+    "outtmpl": "videoscam_pipeline/video_files/test_video.mp4",
+    "output_namplate": "test_video.mp4",
+}
 
 def main(device: str) -> None:
     """
@@ -55,11 +71,26 @@ def main(device: str) -> None:
               f"{psutil.virtual_memory()[0] // 1024**2} MB")
     print(f"## {TColors.BOLD}{TColors.HEADER}{TColors.UNDERLINE}Parameters" + \
           f"{TColors.ENDC} " + "#"*(os.get_terminal_size().columns-14))
-    
-
-    
 
 
+    # create the folders necessary
+    if not os.path.exists(VIDEO_PATH):
+        os.makedirs(VIDEO_PATH)
+    if not os.path.exists(AUDIO_PATH):
+        os.makedirs(AUDIO_PATH)
+
+    # download the youtube test video
+    with yt_dlp.YoutubeDL(YDL_OPTS) as ydl:
+        ydl.download([TEST_VIDEO_URL])
+
+    # create the pipeline
+    pipeline = ScamPipeline(
+        device=device,
+        video_file_path=VIDEO_PATH+"test_video.mp4",
+    )
+
+    # run the pipeline
+    pipeline.run()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="videoscam-detection")
