@@ -1,2 +1,8 @@
 torch
 yt-dlp
+audio-extract
+openai-whisper
+numpy
+transformers
+av
+accelerate
