@@ -9,11 +9,15 @@ import argparse
 import datetime
 import torch
 from typing import Final
+import warnings
 
 import yt_dlp
 
 from videoscam_pipeline.colors import TColors
 from videoscam_pipeline.pipeline import ScamPipeline
+
+# setting the warnings to ignore
+warnings.filterwarnings("ignore")
 
 VIDEO_PATH: Final[str] = "videoscam_pipeline/video_files/"
 AUDIO_PATH: Final[str] = "videoscam_pipeline/audio_files/"
@@ -84,13 +88,13 @@ def main(device: str) -> None:
         ydl.download([TEST_VIDEO_URL])
 
     # create the pipeline
-    pipeline = ScamPipeline(
-        device=device,
-        video_file_path=VIDEO_PATH+"test_video.mp4",
-    )
+    pipeline = ScamPipeline(device=device)
 
     # run the pipeline
-    pipeline.run()
+    pipeline.run(
+        video_file_path=VIDEO_PATH+"test_video.mp4",
+        audio_file_path=AUDIO_PATH+"test_audio.wav",
+    )
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="videoscam-detection")
