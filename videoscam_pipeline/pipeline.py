@@ -134,6 +134,8 @@ class ScamPipeline:
             skip_special_tokens=True,
             clean_up_tokenization_spaces=True,
         )
+        # cut off the prompt from the summary
+        summary = summary[0].split("ASSISTANT: ")[1].strip()
         print("[summarizer] Video summarization successful.")
         return summary
 

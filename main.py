@@ -73,8 +73,9 @@ def main(device: str) -> None:
     else:
         print(f"## {TColors.OKBLUE}{TColors.BOLD}CPU Memory{TColors.ENDC}: " \
               f"{psutil.virtual_memory()[0] // 1024**2} MB")
-    print(f"## {TColors.BOLD}{TColors.HEADER}{TColors.UNDERLINE}Parameters" + \
-          f"{TColors.ENDC} " + "#"*(os.get_terminal_size().columns-14))
+    # print(f"## {TColors.BOLD}{TColors.HEADER}{TColors.UNDERLINE}Parameters" + \
+    #       f"{TColors.ENDC} " + "#"*(os.get_terminal_size().columns-14))
+    print("#"*os.get_terminal_size().columns+"\n")
 
 
     # create the folders necessary
