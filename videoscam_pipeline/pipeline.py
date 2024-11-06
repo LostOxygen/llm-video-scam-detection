@@ -50,7 +50,9 @@ class ScamPipeline:
                 for video in os.listdir(account_folder):
                     # set paths for video and audio file
                     video_file = os.path.join(account_folder, video)
-                    audio_file = os.path.join(video_file, f"{video.split(".")[0]}.wav")
+
+                    video_id = video.split("/")[-1]
+                    audio_file = os.path.join(self.audio_file_path, video_id)
 
                     # summarize the video
                     video = self.__read_video_av(video_file)
