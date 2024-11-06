@@ -11,8 +11,6 @@ import torch
 from typing import Final
 import warnings
 
-import yt_dlp
-
 from videoscam_pipeline.colors import TColors
 from videoscam_pipeline.pipeline import ScamPipeline
 
@@ -21,7 +19,9 @@ warnings.filterwarnings("ignore")
 
 VIDEO_PATH: Final[str] = "videoscam_pipeline/video_files/"
 AUDIO_PATH: Final[str] = "videoscam_pipeline/audio_files/"
-TEST_VIDEO_URL: Final[str] = "https://www.youtube.com/watch?v=2paOYObEhoA"
+YOUTUBE_DATA: Final[str] = "datasets/youtube.json"
+TIKTOK_DATA: Final[str] = "datasets/tiktok.txt"
+TEST_VIDEO_URL: Final[str] = "https://www.youtube.com/shorts/WApQyL-GT1k"
 
 YDL_OPTS: Final[dict] = {
     "format": "mp4",
@@ -46,9 +46,9 @@ def main(device: str) -> None:
     # set the devices correctly
     if device == "cpu":
         device = torch.device("cpu")
-    elif device != "cpu" and device == "cuda" and torch.cuda.is_available():
+    elif device == "cuda" and torch.cuda.is_available():
         device = torch.device(device)
-    elif device != "cpu" and device == "mps" and torch.backends.mps.is_available():
+    elif device == "mps" and torch.backends.mps.is_available():
         device = torch.device(device)
     else:
         print(f"{TColors.WARNING}Warning{TColors.ENDC}: Device {TColors.OKCYAN}{device} " \
@@ -84,18 +84,18 @@ def main(device: str) -> None:
     if not os.path.exists(AUDIO_PATH):
         os.makedirs(AUDIO_PATH)
 
-    # download the youtube test video
-    with yt_dlp.YoutubeDL(YDL_OPTS) as ydl:
-        ydl.download([TEST_VIDEO_URL])
-
     # create the pipeline
-    pipeline = ScamPipeline(device=device)
+    pipeline = ScamPipeline(
+        video_file_path=VIDEO_PATH,
+        audio_file_path=AUDIO_PATH,
+        device=device
+    )
+
+    # download the youtube videos
+    pipeline.download_youtube_videos(video_url_data=YOUTUBE_DATA)
 
     # run the pipeline
-    pipeline.run(
-        video_file_path=VIDEO_PATH+"test_video.mp4",
-        audio_file_path=AUDIO_PATH+"test_audio.wav",
-    )
+    pipeline.run()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="videoscam-detection")

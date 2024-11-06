@@ -1,5 +1,6 @@
 """Video Scam Pipeline Class Implementation"""
 import os
+import json
 import whisper
 import av
 import torch
@@ -10,51 +11,62 @@ from transformers import (
     LlavaNextVideoProcessor,
 )
 
+from pytubefix import YouTube
+from pytubefix.cli import on_progress
+
 from .colors import TColors
 
 class ScamPipeline:
     """Video Scam Pipeline Class"""
 
-    def __init__(self, device: str) -> None:
+    def __init__(self, device: str, video_file_path: str, audio_file_path: str) -> None:
         """Initialize the pipeline with the given configuration"""
         self.device: str = device
         self.whisper_model = None
         self.llava_model = None
         self.llava_processor = None
+        self.video_file_path: str = video_file_path
+        self.audio_file_path: str = audio_file_path
 
-    def run(self, video_file_path: str, audio_file_path: str) -> None:
+    def run(self) -> None:
         """
         Run the pipeline
         
         Parameters:
-            video_file_path (str): The path to the video file.
-            audio_file_path (str): The path to the audio file.
+            None
         
         Returns:
             None
         """
-        # check if video file exists and load the video file
-        if not os.path.exists(video_file_path):
-            raise FileNotFoundError(
-                f"{TColors.FAIL}Error{TColors.ENDC}: " \
-                f"Video file {video_file_path} not found."
-            )
 
-        # transcribe the video
+        # transcribe and summarize the video
         self.__load_whisper_model()
-        self.__extract_audio_from_video(video_file_path, audio_file_path)
-        transcription = self.__transcribe_audio_file(audio_file_path)
-        self.__delete_whisper_model()
-
-        # summarize the video
         self.__load_llava_model()
-        video = self.__read_video_av(video_file_path)
-        summary = self.__summarize_video(video)
-        self.__delete_llava_model()
 
-        # print results
-        print(f"\n{TColors.HEADER}Transcription{TColors.ENDC}: {transcription}\n")
-        print(f"\n{TColors.HEADER}Video Summary{TColors.ENDC}: {summary}\n")
+        # go through every folder in the video file path and process every video
+        for account in os.listdir(self.video_file_path):
+            account_folder = os.path.join(self.video_file_path, account)
+            if os.path.isdir(account_folder):
+                for video in os.listdir(account_folder):
+                    # set paths for video and audio file
+                    video_file = os.path.join(account_folder, video)
+                    audio_file = os.path.join(video_file, f"{video.split(".")[0]}.wav")
+
+                    # summarize the video
+                    video = self.__read_video_av(video_file)
+                    summary = self.__summarize_video(video)
+
+                    # extract audio and transcribe it
+                    print(f"audio file: {audio_file}")
+                    self.__extract_audio_from_video(video_file, audio_file)
+                    transcription = self.__transcribe_audio_file(audio_file)
+
+                    # print results
+                    print(f"\n{TColors.HEADER}Transcription{TColors.ENDC}: {transcription}\n")
+                    print(f"\n{TColors.HEADER}Video Summary{TColors.ENDC}: {summary}\n")
+
+        self.__delete_whisper_model()
+        self.__delete_llava_model()
 
     def __load_whisper_model(self) -> None:
         """Load the whisper model"""
@@ -166,3 +178,43 @@ class ScamPipeline:
         result = np.stack([x.to_ndarray(format="rgb24") for x in frames])
         print("[decoder] Video decoding successful.")
         return result
+
+
+    def download_youtube_videos(self, video_url_data: dict[tuple[str, str], list[str]]) -> None:
+        """
+        Downloads all youtube urls from a list of video urls.
+
+        Parameters:
+            video_urls (list[str]): List of video urls to download
+
+        Returns:
+            None
+        """
+        print(f"{TColors.HEADER}[INFO]{TColors.ENDC} Download youtube videos")
+
+        # load the json data
+        with open(video_url_data, "r", encoding="utf-8") as f:
+            video_url_data = json.load(f)
+        # every youtube tuple consists of the accountname and a list of video urls
+        for youtube_tuple in video_url_data:
+            if "channel" not in youtube_tuple["account"]:
+                account_name = youtube_tuple["account"].split("https://www.youtube.com/")[-1]
+            else:
+                account_name = youtube_tuple["account"].split("channel/")[-1].replace("/", "")
+            print(f"{TColors.HEADER}[INFO]{TColors.ENDC} Account name: {account_name}")
+            video_urls = youtube_tuple["channels"]
+
+            # create the account folder
+            account_folder = os.path.join(self.video_file_path, account_name)
+            if not os.path.exists(account_folder):
+                os.makedirs(account_folder)
+
+            # download the videos
+            for url in video_urls:
+                try:
+                    yt = YouTube(url, on_progress_callback = on_progress)
+                    video_title = yt.title
+                    ys = yt.streams.get_highest_resolution()
+                    ys.download(output_path=account_folder, filename=video_title+".mp4")
+                except Exception as e:
+                    print(f"{TColors.FAIL}[ERROR]{TColors.ENDC} Could not download video: {e}")
