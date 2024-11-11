@@ -214,9 +214,25 @@ class ScamPipeline:
             # download the videos
             for url in video_urls:
                 try:
-                    yt = YouTube(url, on_progress_callback = on_progress)
+                    yt = YouTube(
+                        url,
+                        on_progress_callback=on_progress,
+                        use_po_token=True,
+                        allow_oauth_cache=True,
+                        po_token_verifier=self.__load_po_tokens,
+                        )
                     video_title = yt.title
                     ys = yt.streams.get_highest_resolution()
                     ys.download(output_path=account_folder, filename=video_title+".mp4")
                 except Exception as e:
                     print(f"{TColors.FAIL}[ERROR]{TColors.ENDC} Could not download video: {e}")
+
+
+    def __load_po_tokens(self) -> tuple[str, str]:
+        """
+        Load the po tokens from the environment variables and return as 
+        a tuple: tuple[visitorData: str, po_token: str]
+        """
+        visitor_data = os.environ.get("VISITOR_DATA")
+        po_token = os.environ.get("PO_TOKEN")
+        return visitor_data, po_token

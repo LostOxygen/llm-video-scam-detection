@@ -42,6 +42,33 @@ def main(device: str) -> None:
     Returns:
         None
     """
+    # load the po token and visitor data from file
+    try:
+        with open(file="po_token.txt", mode="r", encoding="utf-8") as f:
+            token = f.read().replace("\n", "")
+            assert token != "", f"{TColors.FAIL}PO token file is empty.{TColors.ENDC}"
+
+            os.environ["PO_TOKEN"] = token
+            print(f"{TColors.OKGREEN}PO token loaded.{TColors.ENDC}")
+
+    except FileNotFoundError:
+        print(f"{TColors.FAIL}Please paste your PO token into the po_token.txt file to prevent " \
+               "youtube from blocking this script. See: " \
+              f"https://github.com/JuanBindez/pytubefix/pull/209{TColors.ENDC}")
+
+    try:
+        with open(file="visitor_data.txt", mode="r", encoding="utf-8") as f:
+            data = f.read().replace("\n", "")
+            assert data != "", f"{TColors.FAIL}PO token file is empty.{TColors.ENDC}"
+
+            os.environ["VISITOR_DATA"] = data
+            print(f"{TColors.OKGREEN}Visitor data loaded.{TColors.ENDC}")
+
+    except FileNotFoundError:
+        print(f"{TColors.FAIL}Please paste your visitor data into the visitor_data.txt file to " \
+               "prevent youtube from blocking this script. See: " \
+              f"https://github.com/JuanBindez/pytubefix/pull/209 {TColors.ENDC}")
+
 
     # set the devices correctly
     if device == "cpu":

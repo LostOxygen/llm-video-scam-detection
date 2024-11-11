@@ -1,4 +1,6 @@
 # project specific
+po_token.txt
+visitor_data.txt
 *.mp4
 *.mp3
 *.wav
