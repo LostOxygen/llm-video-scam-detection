@@ -67,7 +67,7 @@ def main(device: str) -> None:
     except FileNotFoundError:
         print(f"{TColors.FAIL}Please paste your visitor data into the visitor_data.txt file to " \
                "prevent youtube from blocking this script. See: " \
-              f"https://github.com/JuanBindez/pytubefix/pull/209 {TColors.ENDC}")
+              f"https://github.com/JuanBindez/pytubefix/pull/209{TColors.ENDC}")
 
 
     # set the devices correctly
@@ -97,9 +97,8 @@ def main(device: str) -> None:
     elif device == "mps" and torch.backends.mps.is_available():
         print(f"## {TColors.OKBLUE}{TColors.BOLD}Shared Memory{TColors.ENDC}: " \
               f"{psutil.virtual_memory()[0] // 1024**2} MB")
-    else:
-        print(f"## {TColors.OKBLUE}{TColors.BOLD}CPU Memory{TColors.ENDC}: " \
-              f"{psutil.virtual_memory()[0] // 1024**2} MB")
+    print(f"## {TColors.OKBLUE}{TColors.BOLD}CPU Memory{TColors.ENDC}: " \
+            f"{psutil.virtual_memory()[0] // 1024**2} MB")
     # print(f"## {TColors.BOLD}{TColors.HEADER}{TColors.UNDERLINE}Parameters" + \
     #       f"{TColors.ENDC} " + "#"*(os.get_terminal_size().columns-14))
     print("#"*os.get_terminal_size().columns+"\n")
