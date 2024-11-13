@@ -17,8 +17,8 @@ from videoscam_pipeline.pipeline import ScamPipeline
 # setting the warnings to ignore
 warnings.filterwarnings("ignore")
 
-VIDEO_PATH: Final[str] = "videoscam_pipeline/video_files/"
-AUDIO_PATH: Final[str] = "videoscam_pipeline/audio_files/"
+STD_VIDEO_PATH: Final[str] = "videoscam_pipeline/video_files/"
+STD_AUDIO_PATH: Final[str] = "videoscam_pipeline/audio_files/"
 YOUTUBE_DATA: Final[str] = "datasets/youtube.json"
 TIKTOK_DATA: Final[str] = "datasets/tiktok.txt"
 TEST_VIDEO_URL: Final[str] = "https://www.youtube.com/shorts/WApQyL-GT1k"
@@ -32,12 +32,14 @@ YDL_OPTS: Final[dict] = {
     "output_namplate": "test_video.mp4",
 }
 
-def main(device: str) -> None:
+def main(device: str, video_path: str, audio_path: str) -> None:
     """
     Main function to start the videoscam detection.
 
     Parameters:
         device: str - the device to run the computation on (cpu, cuda, mps)
+        video_path: str - the path to the video files
+        audio_path: str - the path to the audio files
 
     Returns:
         None
@@ -99,21 +101,23 @@ def main(device: str) -> None:
               f"{psutil.virtual_memory()[0] // 1024**2} MB")
     print(f"## {TColors.OKBLUE}{TColors.BOLD}CPU Memory{TColors.ENDC}: " \
             f"{psutil.virtual_memory()[0] // 1024**2} MB")
-    # print(f"## {TColors.BOLD}{TColors.HEADER}{TColors.UNDERLINE}Parameters" + \
-    #       f"{TColors.ENDC} " + "#"*(os.get_terminal_size().columns-14))
+    print(f"## {TColors.BOLD}{TColors.HEADER}{TColors.UNDERLINE}Parameters" + \
+          f"{TColors.ENDC} " + "#"*(os.get_terminal_size().columns-14))
+    print(f"## {TColors.OKBLUE}{TColors.BOLD}Video Path{TColors.ENDC}: {video_path}")
+    print(f"## {TColors.OKBLUE}{TColors.BOLD}Audio Path{TColors.ENDC}: {audio_path}")
     print("#"*os.get_terminal_size().columns+"\n")
 
 
     # create the folders necessary
-    if not os.path.exists(VIDEO_PATH):
-        os.makedirs(VIDEO_PATH)
-    if not os.path.exists(AUDIO_PATH):
-        os.makedirs(AUDIO_PATH)
+    if not os.path.exists(video_path):
+        os.makedirs(video_path)
+    if not os.path.exists(audio_path):
+        os.makedirs(audio_path)
 
     # create the pipeline
     pipeline = ScamPipeline(
-        video_file_path=VIDEO_PATH,
-        audio_file_path=AUDIO_PATH,
+        video_file_path=video_path,
+        audio_file_path=audio_path,
         device=device
     )
 
@@ -127,5 +131,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="videoscam-detection")
     parser.add_argument("--device", "-dx", type=str, default="cpu",
         help="specifies the device to run the computations on (cpu, cuda, mps)")
+    parser.add_argument("--video_path", "-vp", type=str, default=STD_VIDEO_PATH,
+        help="specifies the path to the video files")
+    parser.add_argument("--audio_path", "-ap", type=str, default=STD_AUDIO_PATH,
+        help="specifies the path to the audio files")
     args = parser.parse_args()
     main(**vars(args))
