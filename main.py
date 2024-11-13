@@ -93,10 +93,10 @@ def main(device: str, video_path: str, audio_path: str) -> None:
           f"{torch.get_num_threads()} CPU cores with {os.cpu_count()} threads and " \
           f"{torch.cuda.device_count()} GPUs on user: {getpass.getuser()}")
     print(f"## {TColors.OKBLUE}{TColors.BOLD}Device{TColors.ENDC}: {device}")
-    if device == "cuda" and torch.cuda.is_available():
+    if (device == "cuda" or torch.device("cuda")) and torch.cuda.is_available():
         print(f"## {TColors.OKBLUE}{TColors.BOLD}GPU Memory{TColors.ENDC}: " \
               f"{torch.cuda.mem_get_info()[1] // 1024**2} MB")
-    elif device == "mps" and torch.backends.mps.is_available():
+    elif (device == "mps" or torch.device("mps")) and torch.backends.mps.is_available():
         print(f"## {TColors.OKBLUE}{TColors.BOLD}Shared Memory{TColors.ENDC}: " \
               f"{psutil.virtual_memory()[0] // 1024**2} MB")
     print(f"## {TColors.OKBLUE}{TColors.BOLD}CPU Memory{TColors.ENDC}: " \
