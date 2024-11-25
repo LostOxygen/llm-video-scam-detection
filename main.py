@@ -19,6 +19,7 @@ warnings.filterwarnings("ignore")
 
 STD_VIDEO_PATH: Final[str] = "videoscam_pipeline/video_files/"
 STD_AUDIO_PATH: Final[str] = "videoscam_pipeline/audio_files/"
+STD_OUTPUT_PATH: Final[str] = "videoscam_pipeline/output_files/"
 YOUTUBE_DATA: Final[str] = "datasets/youtube.json"
 TIKTOK_DATA: Final[str] = "datasets/tiktok.txt"
 TEST_VIDEO_URL: Final[str] = "https://www.youtube.com/shorts/WApQyL-GT1k"
@@ -32,7 +33,7 @@ YDL_OPTS: Final[dict] = {
     "output_namplate": "test_video.mp4",
 }
 
-def main(device: str, video_path: str, audio_path: str) -> None:
+def main(device: str, video_path: str, audio_path: str, output_path: str) -> None:
     """
     Main function to start the videoscam detection.
 
@@ -40,6 +41,7 @@ def main(device: str, video_path: str, audio_path: str) -> None:
         device: str - the device to run the computation on (cpu, cuda, mps)
         video_path: str - the path to the video files
         audio_path: str - the path to the audio files
+        output_path: str - the path to the output dump files
 
     Returns:
         None
@@ -105,6 +107,7 @@ def main(device: str, video_path: str, audio_path: str) -> None:
           f"{TColors.ENDC} " + "#"*(os.get_terminal_size().columns-14))
     print(f"## {TColors.OKBLUE}{TColors.BOLD}Video Path{TColors.ENDC}: {video_path}")
     print(f"## {TColors.OKBLUE}{TColors.BOLD}Audio Path{TColors.ENDC}: {audio_path}")
+    print(f"## {TColors.OKBLUE}{TColors.BOLD}Output Path{TColors.ENDC}: {output_path}")
     print("#"*os.get_terminal_size().columns+"\n")
 
 
@@ -113,16 +116,17 @@ def main(device: str, video_path: str, audio_path: str) -> None:
         os.makedirs(video_path)
     if not os.path.exists(audio_path):
         os.makedirs(audio_path)
+    if not os.path.exists(output_path):
+        os.makedirs(output_path)
 
     # create the pipeline
     pipeline = ScamPipeline(
         video_file_path=video_path,
         audio_file_path=audio_path,
+        output_path=output_path,
+        video_url_data=YOUTUBE_DATA,
         device=device
     )
-
-    # download the youtube videos
-    pipeline.download_youtube_videos(video_url_data=YOUTUBE_DATA)
 
     # run the pipeline
     pipeline.run()
@@ -135,5 +139,7 @@ if __name__ == "__main__":
         help="specifies the path to the video files")
     parser.add_argument("--audio_path", "-ap", type=str, default=STD_AUDIO_PATH,
         help="specifies the path to the audio files")
+    parser.add_argument("--output_path", "-op", type=str, default=STD_OUTPUT_PATH,
+        help="specifies the path to the output dump files")
     args = parser.parse_args()
     main(**vars(args))

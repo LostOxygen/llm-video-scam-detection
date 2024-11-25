@@ -19,14 +19,23 @@ from .colors import TColors
 class ScamPipeline:
     """Video Scam Pipeline Class"""
 
-    def __init__(self, device: str, video_file_path: str, audio_file_path: str) -> None:
+    def __init__(self,
+        device: str,
+        video_file_path: str,
+        audio_file_path: str,
+        output_path: str,
+        video_url_data: str,
+    ) -> None:
         """Initialize the pipeline with the given configuration"""
         self.device: str = device
         self.whisper_model = None
         self.llava_model = None
         self.llava_processor = None
+        self.download_videos = True
         self.video_file_path: str = video_file_path
         self.audio_file_path: str = audio_file_path
+        self.output_path: str = output_path
+        self.video_url_data: str = video_url_data
 
     def run(self) -> None:
         """
@@ -43,32 +52,96 @@ class ScamPipeline:
         self.__load_whisper_model()
         self.__load_llava_model()
 
-        # go through every folder in the video file path and process every video
-        for account in os.listdir(self.video_file_path):
-            account_folder = os.path.join(self.video_file_path, account)
-            if os.path.isdir(account_folder):
-                for video in os.listdir(account_folder):
-                    # set paths for video and audio file
-                    video_file = os.path.join(account_folder, video)
+        # load the json data
+        with open(self.video_url_data, "r", encoding="utf-8") as f:
+            video_url_data = json.load(f)
+        # every youtube tuple consists of the accountname and a list of video urls
+        for youtube_tuple in video_url_data:
+            if "channel" not in youtube_tuple["account"]:
+                account_name = youtube_tuple["account"].split("https://www.youtube.com/")[-1]
+            else:
+                account_name = youtube_tuple["account"].split("channel/")[-1].replace("/", "")
+            print(f"{TColors.HEADER}[INFO]{TColors.ENDC} Account name: {account_name}")
+            video_urls = youtube_tuple["channels"]
 
-                    video_id = video.split("/")[-1]
-                    audio_file = os.path.join(self.audio_file_path, video_id)
+            # create the account folder
+            account_folder = os.path.join(self.video_file_path, account_name)
+            if not os.path.exists(account_folder):
+                os.makedirs(account_folder)
 
-                    # summarize the video
-                    video = self.__read_video_av(video_file)
-                    summary = self.__summarize_video(video)
+            # process each video of a channel
+            for url in video_urls:
+                # download the video (skip if the video was not downloaded successfully)
+                video_downloaded, vid_title = self.__download_youtube_video(url, account_folder)
+                if not video_downloaded:
+                    continue
 
-                    # extract audio and transcribe it
-                    print(f"audio file: {audio_file}")
-                    self.__extract_audio_from_video(video_file, audio_file)
-                    transcription = self.__transcribe_audio_file(audio_file)
+                # set paths for video and audio file
+                video_file = os.path.join(account_folder, vid_title+".mp4")
+                print("video file: ", video_file)
 
-                    # print results
-                    print(f"\n{TColors.HEADER}Transcription{TColors.ENDC}: {transcription}\n")
-                    print(f"\n{TColors.HEADER}Video Summary{TColors.ENDC}: {summary}\n")
+                video_id = video_file.split("/")[-1].replace(".mp4", ".wav")
+                audio_file = os.path.join(self.audio_file_path, video_id)
+
+                # summarize the video
+                video = self.__read_video_av(video_file)
+                summary = self.__summarize_video(video)
+
+                # extract audio and transcribe it
+                print(f"audio file: {audio_file}")
+                self.__extract_audio_from_video(video_file, audio_file)
+                transcription = self.__transcribe_audio_file(audio_file)
+
+                # print and save summary and transcription results
+                print(f"\n{TColors.HEADER}Transcription{TColors.ENDC}: {transcription}\n")
+                print(f"\n{TColors.HEADER}Video Summary{TColors.ENDC}: {summary}\n")
+                self.__dump_data(
+                    video_summary=summary,
+                    transcription=transcription,
+                    video_name=vid_title,
+                    video_url=url,
+                    channel_url=youtube_tuple["account"],
+                    file_path=os.path.join(self.output_path, f"{vid_title}.json"),
+                )
 
         self.__delete_whisper_model()
         self.__delete_llava_model()
+
+
+    def __dump_data(
+        self,
+        file_path: str,
+        video_summary: str,
+        transcription: str,
+        video_name: str,
+        video_url: str,
+        channel_url: str,
+    ) -> None:
+        """
+        Dump the transcription, summary, and other relevant data of a video to a json file
+        
+        Parameters:
+            file_path str: the path to the json file
+            video_summary str: the summary of the video
+            transcription str: the transcription of the video
+            video_name str: the name of the video
+            video_url str: the url of the video
+            channel_url str: the url of the channel
+
+        Returns:
+            None
+        """
+        data = {
+            "channel_url": channel_url,
+            "video_name": video_name,
+            "video_url": video_url,
+            "video_summary": video_summary,
+            "transcription": transcription,
+        }
+
+        with open(file_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=4)
+
 
     def __load_whisper_model(self) -> None:
         """Load the whisper model"""
@@ -182,50 +255,35 @@ class ScamPipeline:
         return result
 
 
-    def download_youtube_videos(self, video_url_data: dict[tuple[str, str], list[str]]) -> None:
+    def __download_youtube_video(self, video_url: str, account_folder: str) -> bool:
         """
-        Downloads all youtube urls from a list of video urls.
+        Downloads the youtube video from the given url and saves it to the account folder
 
         Parameters:
-            video_urls (list[str]): List of video urls to download
+            video_url str: url of the video to download
 
         Returns:
-            None
+            tuple[bool, str]: True if the video was downloaded successfully, False otherwise
+                Video title if the video was downloaded successfully, "error downloading" otherwise
         """
-        print(f"{TColors.HEADER}[INFO]{TColors.ENDC} Download youtube videos")
+        print(f"{TColors.HEADER}[INFO]{TColors.ENDC} Download youtube video: {video_url}")
 
-        # load the json data
-        with open(video_url_data, "r", encoding="utf-8") as f:
-            video_url_data = json.load(f)
-        # every youtube tuple consists of the accountname and a list of video urls
-        for youtube_tuple in video_url_data:
-            if "channel" not in youtube_tuple["account"]:
-                account_name = youtube_tuple["account"].split("https://www.youtube.com/")[-1]
-            else:
-                account_name = youtube_tuple["account"].split("channel/")[-1].replace("/", "")
-            print(f"{TColors.HEADER}[INFO]{TColors.ENDC} Account name: {account_name}")
-            video_urls = youtube_tuple["channels"]
-
-            # create the account folder
-            account_folder = os.path.join(self.video_file_path, account_name)
-            if not os.path.exists(account_folder):
-                os.makedirs(account_folder)
-
-            # download the videos
-            for url in video_urls:
-                try:
-                    yt = YouTube(
-                        url,
-                        on_progress_callback=on_progress,
-                        use_po_token=True,
-                        allow_oauth_cache=True,
-                        po_token_verifier=self.__load_po_tokens,
-                        )
-                    video_title = yt.title
-                    ys = yt.streams.get_highest_resolution()
-                    ys.download(output_path=account_folder, filename=video_title+".mp4")
-                except Exception as e:
-                    print(f"{TColors.FAIL}[ERROR]{TColors.ENDC} Could not download video: {e}")
+        # download the video
+        try:
+            yt = YouTube(
+                video_url,
+                on_progress_callback=on_progress,
+                use_po_token=True,
+                allow_oauth_cache=True,
+                po_token_verifier=self.__load_po_tokens,
+                )
+            video_title = yt.title
+            ys = yt.streams.get_highest_resolution()
+            ys.download(output_path=account_folder, filename=video_title+".mp4")
+            return True, video_title
+        except Exception as e:
+            print(f"{TColors.FAIL}[ERROR]{TColors.ENDC} Could not download video: {e}")
+            return False, "error downloading"
 
 
     def __load_po_tokens(self) -> tuple[str, str]:

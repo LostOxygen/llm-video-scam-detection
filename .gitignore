@@ -6,6 +6,7 @@ visitor_data.txt
 *.wav
 videoscam_pipeline/audio_files/
 videoscam_pipeline/video_files/
+videoscam_pipeline/output_files/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
