@@ -192,7 +192,7 @@ class ScamPipeline:
     def __transcribe_audio_file(self, audio_path: str) -> str:
         """Transcribe the audio file using whisper. Returns transcription"""
         transcription = self.whisper_model.transcribe(audio_path)["text"]
-        print("[transcriber] Audio transcription successful.")
+        print(f"{TColors.OKBLUE}[Transcriber]{TColors.ENDC} Audio transcription successful.")
         return transcription
 
     def __summarize_video(self, video: np.array) -> str:
@@ -227,7 +227,7 @@ class ScamPipeline:
         )
         # cut off the prompt from the summary
         summary = summary[0].split("ASSISTANT: ")[1].strip()
-        print("[summarizer] Video summarization successful.")
+        print(f"{TColors.OKBLUE}[Summarizer]{TColors.ENDC} Video summarization successful.")
         return summary
 
     def __read_video_av(self, video_file_path) -> np.array:
@@ -255,7 +255,7 @@ class ScamPipeline:
             if i >= start_index and i in indices:
                 frames.append(frame)
         result = np.stack([x.to_ndarray(format="rgb24") for x in frames])
-        print("[decoder] Video decoding successful.")
+        print(f"{TColors.OKBLUE}[Decoder]{TColors.ENDC} Video decoding successful.")
         return result
 
 
