@@ -282,6 +282,12 @@ class ScamPipeline:
                 po_token_verifier=self.__load_po_tokens,
                 )
             video_title = yt.title
+            # check if the video is already downloaded
+            if os.path.exists(os.path.join(account_folder, video_title+".mp4")):
+                print(f"{TColors.WARNING}[WARNING]{TColors.ENDC} Video already " \
+                      f"downloaded: {video_title}")
+                return True, video_title
+
             ys = yt.streams.get_highest_resolution()
             ys.download(output_path=account_folder, filename=video_title+".mp4")
             return True, video_title
