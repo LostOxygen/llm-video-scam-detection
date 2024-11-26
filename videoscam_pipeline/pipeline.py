@@ -84,7 +84,11 @@ class ScamPipeline:
                 audio_file = os.path.join(self.audio_file_path, video_id)
 
                 # summarize the video
-                video = self.__read_video_av(video_file)
+                try:
+                    video = self.__read_video_av(video_file)
+                except Exception as e:
+                    print(f"{TColors.FAIL}[ERROR]{TColors.ENDC} Could not read video: {e}")
+                    continue
                 summary = self.__summarize_video(video)
 
                 # extract audio and transcribe it
