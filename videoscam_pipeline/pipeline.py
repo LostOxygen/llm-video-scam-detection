@@ -71,6 +71,7 @@ class ScamPipeline:
 
             # process each video of a channel
             for url in video_urls:
+
                 # download the video (skip if the video was not downloaded successfully)
                 video_downloaded, vid_title = self.__download_youtube_video(url, account_folder)
                 if not video_downloaded:
@@ -78,23 +79,37 @@ class ScamPipeline:
 
                 # set paths for video and audio file
                 video_file = os.path.join(account_folder, vid_title+".mp4")
-                print("video file: ", video_file)
 
                 video_id = video_file.split("/")[-1].replace(".mp4", ".wav")
                 audio_file = os.path.join(self.audio_file_path, video_id)
 
-                # summarize the video
+                # read the video av
                 try:
                     video = self.__read_video_av(video_file)
                 except Exception as e:
                     print(f"{TColors.FAIL}[ERROR]{TColors.ENDC} Could not read video: {e}")
                     continue
-                summary = self.__summarize_video(video)
 
-                # extract audio and transcribe it
-                print(f"audio file: {audio_file}")
-                self.__extract_audio_from_video(video_file, audio_file)
-                transcription = self.__transcribe_audio_file(audio_file)
+                # summarize the video
+                try:
+                    summary = self.__summarize_video(video)
+                except Exception as e:
+                    print(f"{TColors.FAIL}[ERROR]{TColors.ENDC} Could not summarize video: {e}")
+                    continue
+
+                # extract audio
+                try:
+                    self.__extract_audio_from_video(video_file, audio_file)
+                except Exception as e:
+                    print(f"{TColors.FAIL}[ERROR]{TColors.ENDC} Could not extract audio: {e}")
+                    continue
+
+                # transcribe audio
+                try:
+                    transcription = self.__transcribe_audio_file(audio_file)
+                except Exception as e:
+                    print(f"{TColors.FAIL}[ERROR]{TColors.ENDC} Could not transcribe audio: {e}")
+                    continue
 
                 # print and save summary and transcription results
                 print(f"\n{TColors.HEADER}Transcription{TColors.ENDC}: {transcription}\n")
