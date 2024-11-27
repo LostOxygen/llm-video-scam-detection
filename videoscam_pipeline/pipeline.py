@@ -90,6 +90,11 @@ class ScamPipeline:
                     print(f"{TColors.FAIL}[ERROR]{TColors.ENDC} Could not read video: {e}")
                     continue
 
+                # check if the video is already summarized
+                if os.path.exists(os.path.join(self.output_path, f"{vid_title}.json")):
+                    print(f"{TColors.WARNING}[WARNING]{TColors.ENDC} Video already summarized")
+                    continue
+
                 # summarize the video
                 try:
                     summary = self.__summarize_video(video)
