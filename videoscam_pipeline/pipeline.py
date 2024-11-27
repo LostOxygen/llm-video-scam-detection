@@ -77,6 +77,11 @@ class ScamPipeline:
                 if not video_downloaded:
                     continue
 
+                # check if the video is already summarized
+                if os.path.exists(os.path.join(self.output_path, f"{vid_title}.json")):
+                    print(f"{TColors.WARNING}[WARNING]{TColors.ENDC} Video already summarized")
+                    continue
+
                 # set paths for video and audio file
                 video_file = os.path.join(account_folder, vid_title+".mp4")
 
@@ -88,11 +93,6 @@ class ScamPipeline:
                     video = self.__read_video_av(video_file)
                 except Exception as e:
                     print(f"{TColors.FAIL}[ERROR]{TColors.ENDC} Could not read video: {e}")
-                    continue
-
-                # check if the video is already summarized
-                if os.path.exists(os.path.join(self.output_path, f"{vid_title}.json")):
-                    print(f"{TColors.WARNING}[WARNING]{TColors.ENDC} Video already summarized")
                     continue
 
                 # summarize the video
