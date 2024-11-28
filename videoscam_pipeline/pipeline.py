@@ -10,6 +10,9 @@ from transformers import (
     LlavaNextVideoForConditionalGeneration,
     LlavaNextVideoProcessor,
 )
+from sentence_transformers import SentenceTransformer
+from lingua import LanguageDetectorBuilder, Language
+from bertopic import BERTopic
 
 from pytubefix import YouTube
 from pytubefix.cli import on_progress
@@ -28,14 +31,24 @@ class ScamPipeline:
     ) -> None:
         """Initialize the pipeline with the given configuration"""
         self.device: str = device
+        self.language_detector = None
         self.whisper_model = None
+        self.topic_model = None
         self.llava_model = None
         self.llava_processor = None
         self.download_videos = True
         self.video_file_path: str = video_file_path
         self.audio_file_path: str = audio_file_path
+        self.embedding_model = None
         self.output_path: str = output_path
         self.video_url_data: str = video_url_data
+
+        # init the models
+        self.__load_whisper_model()
+        self.__load_llava_model()
+        self.__load_embedding_model()
+        self.__load_topic_model()
+        self.__load_language_detector()
 
     def run(self) -> None:
         """
@@ -49,9 +62,6 @@ class ScamPipeline:
         """
 
         # transcribe and summarize the video
-        self.__load_whisper_model()
-        self.__load_llava_model()
-
         # load the json data
         with open(self.video_url_data, "r", encoding="utf-8") as f:
             video_url_data = json.load(f)
@@ -71,7 +81,6 @@ class ScamPipeline:
 
             # process each video of a channel
             for url in video_urls:
-
                 # download the video (skip if the video was not downloaded successfully)
                 video_downloaded, vid_title = self.__download_youtube_video(url, account_folder)
                 if not video_downloaded:
@@ -128,8 +137,33 @@ class ScamPipeline:
                     file_path=os.path.join(self.output_path, f"{vid_title}.json"),
                 )
 
+            # cluster the video informations, iterating over every output file
+            information_list = []
+            for file in os.listdir(self.output_path):
+                with open(os.path.join(self.output_path, file), "r", encoding="utf-8") as f:
+                    video_data = json.load(f)
+                    summary = video_data["video_summary"]
+                    transcript = video_data["transcription"]
+                    information = summary + transcript
+
+                    # filter the summarizations for english language only using CLD2
+                    language = self.__get_information_language(information)
+
+                    if language != Language.ENGLISH:
+                        continue
+
+                    information_list.append(information)
+
+            # create the topic clustering with BERTopic
+            topics, _ = self.topic_model.fit_transform(information_list)
+            print(f"{TColors.OKBLUE}[Topic Model]{TColors.ENDC} Topics: {topics}")
+
+    def __del__(self) -> None:
         self.__delete_whisper_model()
         self.__delete_llava_model()
+        self.__delete_embedding_model()
+        self.__delete_language_detector()
+        self.__delete_topic_model()
 
 
     def __dump_data(
@@ -180,7 +214,36 @@ class ScamPipeline:
         self.whisper_model = None
         torch.cuda.empty_cache()
 
+
+    def __load_language_detector(self) -> None:
+        """Load the language detector model"""
+        self.language_detector = LanguageDetectorBuilder \
+            .from_all_languages() \
+            .with_preloaded_language_models() \
+            .build()
+
+
+    def __delete_language_detector(self) -> None:
+        """Delete the language detector model for free memory and cache"""
+        del self.language_detector
+        self.language_detector = None
+        torch.cuda.empty_cache()
+
+
+    def __load_topic_model(self) -> None:
+        """Load the topic model"""
+        self.topic_model = BERTopic()
+
+
+    def __delete_topic_model(self) -> None:
+        """Delete the topic model for free memory and cache"""
+        del self.topic_model
+        self.topic_model = None
+        torch.cuda.empty_cache()
+
+
     def __load_llava_model(self) -> None:
+        "Load the llava vision-llm model"
         # enabling apple silicon mps fix
         os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
         self.llava_model = LlavaNextVideoForConditionalGeneration.from_pretrained(
@@ -192,6 +255,7 @@ class ScamPipeline:
             "llava-hf/LLaVA-NeXT-Video-7B-hf",
         )
 
+
     def __delete_llava_model(self) -> None:
         """Delete the llava model for free memory and cache"""
         del self.llava_model
@@ -199,6 +263,20 @@ class ScamPipeline:
         self.llava_processor = None
         self.llava_model = None
         torch.cuda.empty_cache()
+
+
+    def __load_embedding_model(self) -> None:
+        "Load the mpnet-base-v2 embedding model"
+        self.embedding_model = SentenceTransformer("all-mpnet-base-v2")
+        self.embedding_model = self.embedding_model.to(self.device)
+
+
+    def __delete_embedding_model(self) -> None:
+        """Delete the llava model for free memory and cache"""
+        del self.embedding_model
+        self.embedding_model = None
+        torch.cuda.empty_cache()
+
 
     def __extract_audio_from_video(self, video_path: str, audio_path: str) -> None:
         """Extract audio from video"""
@@ -209,11 +287,24 @@ class ScamPipeline:
             overwrite=True,
         )
 
+
+    def __get_information_language(self, text) -> Language:
+        """Get the language of the text using CLD2"""
+        return self.language_detector.detect_language_of(text)
+
+
+    # pylint: disable=unused-private-member
+    def __get_information_embedding(self, text) -> torch.tensor:
+        """Get the embedding of the text using the embedding model"""
+        return self.embedding_model.encode(text)
+
+
     def __transcribe_audio_file(self, audio_path: str) -> str:
         """Transcribe the audio file using whisper. Returns transcription"""
         transcription = self.whisper_model.transcribe(audio_path)["text"]
         print(f"{TColors.OKBLUE}[Transcriber]{TColors.ENDC} Audio transcription successful.")
         return transcription
+
 
     def __summarize_video(self, video: np.array) -> str:
         """Summarize the video using llava model"""
@@ -249,6 +340,7 @@ class ScamPipeline:
         summary = summary[0].split("ASSISTANT: ")[1].strip()
         print(f"{TColors.OKBLUE}[Summarizer]{TColors.ENDC} Video summarization successful.")
         return summary
+
 
     def __read_video_av(self, video_file_path) -> np.array:
         """

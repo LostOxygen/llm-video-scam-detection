@@ -20,9 +20,8 @@ warnings.filterwarnings("ignore")
 STD_VIDEO_PATH: Final[str] = "videoscam_pipeline/video_files/"
 STD_AUDIO_PATH: Final[str] = "videoscam_pipeline/audio_files/"
 STD_OUTPUT_PATH: Final[str] = "videoscam_pipeline/output_files/"
-YOUTUBE_DATA: Final[str] = "datasets/youtube.json"
+YOUTUBE_DATA: Final[str] = "datasets/youtube_test.json"
 TIKTOK_DATA: Final[str] = "datasets/tiktok.txt"
-TEST_VIDEO_URL: Final[str] = "https://www.youtube.com/shorts/WApQyL-GT1k"
 
 YDL_OPTS: Final[dict] = {
     "format": "mp4",
