@@ -20,7 +20,7 @@ warnings.filterwarnings("ignore")
 STD_VIDEO_PATH: Final[str] = "videoscam_pipeline/video_files/"
 STD_AUDIO_PATH: Final[str] = "videoscam_pipeline/audio_files/"
 STD_OUTPUT_PATH: Final[str] = "videoscam_pipeline/output_files/"
-YOUTUBE_DATA: Final[str] = "datasets/youtube_test.json"
+YOUTUBE_DATA: Final[str] = "datasets/youtube.json"
 TIKTOK_DATA: Final[str] = "datasets/tiktok.txt"
 
 YDL_OPTS: Final[dict] = {
