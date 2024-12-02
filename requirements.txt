@@ -8,4 +8,4 @@ av
 accelerate
 sentence_transformers
 bertopic
-lingua
+lingua-language-detector
