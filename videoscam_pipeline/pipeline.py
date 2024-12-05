@@ -415,7 +415,7 @@ class ScamPipeline:
             return True, video_title
         except Exception as e:
             if not download:
-                return True, e + " (use cached version)"
+                return True, str(e) + " (use cached version)"
             print(f"{TColors.FAIL}[ERROR]{TColors.ENDC} Could not download video: {e}")
             return False, "error downloading"
 
