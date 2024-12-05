@@ -50,12 +50,12 @@ class ScamPipeline:
         self.__load_topic_model()
         self.__load_language_detector()
 
-    def run(self) -> None:
+    def run(self, download: bool) -> None:
         """
         Run the pipeline
         
         Parameters:
-            None
+            download: bool: True if the videos should be downloaded, False otherwise
         
         Returns:
             None
@@ -82,7 +82,11 @@ class ScamPipeline:
             # process each video of a channel
             for url in video_urls:
                 # download the video (skip if the video was not downloaded successfully)
-                video_downloaded, vid_title = self.__download_youtube_video(url, account_folder)
+                video_downloaded, vid_title = self.__download_youtube_video(
+                    url,
+                    account_folder,
+                    download
+                )
                 if not video_downloaded:
                     continue
 
@@ -137,26 +141,26 @@ class ScamPipeline:
                     file_path=os.path.join(self.output_path, f"{vid_title}.json"),
                 )
 
-            # cluster the video informations, iterating over every output file
-            information_list = []
-            for file in os.listdir(self.output_path):
-                with open(os.path.join(self.output_path, file), "r", encoding="utf-8") as f:
-                    video_data = json.load(f)
-                    summary = video_data["video_summary"]
-                    transcript = video_data["transcription"]
-                    information = summary + transcript
+        # cluster the video informations, iterating over every output file
+        information_list = []
+        for file in os.listdir(self.output_path):
+            with open(os.path.join(self.output_path, file), "r", encoding="utf-8") as f:
+                video_data = json.load(f)
+                summary = video_data["video_summary"]
+                transcript = video_data["transcription"]
+                information = summary + transcript
 
-                    # filter the summarizations for english language only using CLD2
-                    language = self.__get_information_language(information)
+                # filter the summarizations for english language only using CLD2
+                language = self.__get_information_language(information)
 
-                    if language != Language.ENGLISH:
-                        continue
+                if language != Language.ENGLISH:
+                    continue
 
-                    information_list.append(information)
+                information_list.append(information)
 
-            # create the topic clustering with BERTopic
-            topics, _ = self.topic_model.fit_transform(information_list)
-            print(f"{TColors.OKBLUE}[Topic Model]{TColors.ENDC} Topics: {topics}")
+        # create the topic clustering with BERTopic
+        topics, _ = self.topic_model.fit_transform(information_list)
+        print(f"{TColors.OKBLUE}[Topic Model]{TColors.ENDC} Topics: {topics}")
 
     def __del__(self) -> None:
         self.__delete_whisper_model()
@@ -371,12 +375,14 @@ class ScamPipeline:
         return result
 
 
-    def __download_youtube_video(self, video_url: str, account_folder: str) -> bool:
+    def __download_youtube_video(self, video_url: str, account_folder: str, download: bool) -> bool:
         """
         Downloads the youtube video from the given url and saves it to the account folder
 
         Parameters:
             video_url str: url of the video to download
+            account_folder str: the folder to save the video
+            download bool: True if the video should be downloaded, False otherwise
 
         Returns:
             tuple[bool, str]: True if the video was downloaded successfully, False otherwise
@@ -394,6 +400,10 @@ class ScamPipeline:
                 po_token_verifier=self.__load_po_tokens,
                 )
             video_title = yt.title
+
+            if not download:
+                return True, video_title
+
             # check if the video is already downloaded
             if os.path.exists(os.path.join(account_folder, video_title+".mp4")):
                 print(f"{TColors.WARNING}[WARNING]{TColors.ENDC} Video already " \
@@ -404,6 +414,8 @@ class ScamPipeline:
             ys.download(output_path=account_folder, filename=video_title+".mp4")
             return True, video_title
         except Exception as e:
+            if not download:
+                return True, e + " (use cached version)"
             print(f"{TColors.FAIL}[ERROR]{TColors.ENDC} Could not download video: {e}")
             return False, "error downloading"
 

@@ -32,7 +32,7 @@ YDL_OPTS: Final[dict] = {
     "output_namplate": "test_video.mp4",
 }
 
-def main(device: str, video_path: str, audio_path: str, output_path: str) -> None:
+def main(device: str, video_path: str, audio_path: str, output_path: str, download: bool) -> None:
     """
     Main function to start the videoscam detection.
 
@@ -41,6 +41,7 @@ def main(device: str, video_path: str, audio_path: str, output_path: str) -> Non
         video_path: str - the path to the video files
         audio_path: str - the path to the audio files
         output_path: str - the path to the output dump files
+        download: bool - whether to download the video or not
 
     Returns:
         None
@@ -107,6 +108,7 @@ def main(device: str, video_path: str, audio_path: str, output_path: str) -> Non
     print(f"## {TColors.OKBLUE}{TColors.BOLD}Video Path{TColors.ENDC}: {video_path}")
     print(f"## {TColors.OKBLUE}{TColors.BOLD}Audio Path{TColors.ENDC}: {audio_path}")
     print(f"## {TColors.OKBLUE}{TColors.BOLD}Output Path{TColors.ENDC}: {output_path}")
+    print(f"## {TColors.OKBLUE}{TColors.BOLD}Download{TColors.ENDC}: {download}")
     print("#"*os.get_terminal_size().columns+"\n")
 
 
@@ -128,7 +130,7 @@ def main(device: str, video_path: str, audio_path: str, output_path: str) -> Non
     )
 
     # run the pipeline
-    pipeline.run()
+    pipeline.run(download=download)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="videoscam-detection")
@@ -140,5 +142,7 @@ if __name__ == "__main__":
         help="specifies the path to the audio files")
     parser.add_argument("--output_path", "-op", type=str, default=STD_OUTPUT_PATH,
         help="specifies the path to the output dump files")
+    parser.add_argument("--download", "-d", action="store_true",
+        help="specifies whether to download the video or not")
     args = parser.parse_args()
     main(**vars(args))
