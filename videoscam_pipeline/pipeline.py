@@ -50,12 +50,13 @@ class ScamPipeline:
         self.__load_topic_model()
         self.__load_language_detector()
 
-    def run(self, download: bool) -> None:
+    def run(self, download: bool, cluster_only: bool) -> None:
         """
         Run the pipeline
         
         Parameters:
             download: bool: True if the videos should be downloaded, False otherwise
+            cluster_only: bool: True if the pipeline should only cluster the videos, False otherwise
         
         Returns:
             None
@@ -67,6 +68,10 @@ class ScamPipeline:
             video_url_data = json.load(f)
         # every youtube tuple consists of the accountname and a list of video urls
         for youtube_tuple in video_url_data:
+            # if the cluster_only flag is set, skip the whole process
+            if cluster_only:
+                break
+
             if "channel" not in youtube_tuple["account"]:
                 account_name = youtube_tuple["account"].split("https://www.youtube.com/")[-1]
             else:

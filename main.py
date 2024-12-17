@@ -32,7 +32,14 @@ YDL_OPTS: Final[dict] = {
     "output_namplate": "test_video.mp4",
 }
 
-def main(device: str, video_path: str, audio_path: str, output_path: str, download: bool) -> None:
+def main(
+        device: str,
+        video_path: str,
+        audio_path: str,
+        output_path: str,
+        download: bool,
+        cluster_only: bool,
+    ) -> None:
     """
     Main function to start the videoscam detection.
 
@@ -42,6 +49,7 @@ def main(device: str, video_path: str, audio_path: str, output_path: str, downlo
         audio_path: str - the path to the audio files
         output_path: str - the path to the output dump files
         download: bool - whether to download the video or not
+        cluster_only: bool - whether to run the clustering only without dowlnoading and stuff
 
     Returns:
         None
@@ -130,7 +138,7 @@ def main(device: str, video_path: str, audio_path: str, output_path: str, downlo
     )
 
     # run the pipeline
-    pipeline.run(download=download)
+    pipeline.run(download=download, cluster_only=cluster_only)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="videoscam-detection")
@@ -144,5 +152,7 @@ if __name__ == "__main__":
         help="specifies the path to the output dump files")
     parser.add_argument("--download", "-d", action="store_true",
         help="specifies whether to download the video or not")
+    parser.add_argument("--cluster_only", "-co", action="store_true",
+        help="specifies whether to run the clustering only without dowlnoading and stuff")
     args = parser.parse_args()
     main(**vars(args))
